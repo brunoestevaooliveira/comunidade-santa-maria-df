@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: comunidade_santa_maria_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: comunidade_santa_maria
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: senha123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - comunidade_network
+
+  # Redis (para cache e sessões)
+  redis:
+    image: redis:7-alpine
+    container_name: comunidade_santa_maria_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - comunidade_network
+
+  # pgAdmin (opcional - interface gráfica para PostgreSQL)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: comunidade_santa_maria_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@comunidade.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - comunidade_network
+
+volumes:
+  postgres_data:
+
+networks:
+  comunidade_network:
+    driver: bridge

@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  avatar      String?
+  role        Role     @default(MORADOR)
+  address     String
+  phone       String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  issues         CommunityIssue[]
+  events         Event[]
+  eventParticipants EventParticipant[]
+  marketplaceItems MarketplaceItem[]
+  volunteerOps   VolunteerOpportunity[]
+  volunteerRegs  VolunteerRegistration[]
+  votes         IssueVote[]
+  chatMessages  ChatMessage[]
+
+  @@map("users")
+}
+
+model CommunityIssue {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  category    IssueCategory
+  latitude    Float
+  longitude   Float
+  address     String
+  status      IssueStatus @default(ABERTO)
+  priority    Priority    @default(MEDIA)
+  images      String[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relacionamentos
+  reportedBy  String
+  reporter    User        @relation(fields: [reportedBy], references: [id])
+  votes       IssueVote[]
+
+  @@map("community_issues")
+}
+
+model IssueVote {
+  id      String @id @default(cuid())
+  userId  String
+  issueId String
+
+  user    User           @relation(fields: [userId], references: [id])
+  issue   CommunityIssue @relation(fields: [issueId], references: [id])
+
+  @@unique([userId, issueId])
+  @@map("issue_votes")
+}
+
+model Event {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  category        EventCategory
+  date            DateTime
+  location        String
+  latitude        Float?
+  longitude       Float?
+  maxParticipants Int?
+  isPublic        Boolean  @default(true)
+  imageUrl        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relacionamentos
+  organizerId   String
+  organizer     User               @relation(fields: [organizerId], references: [id])
+  participants  EventParticipant[]
+
+  @@map("events")
+}
+
+model EventParticipant {
+  id      String @id @default(cuid())
+  userId  String
+  eventId String
+
+  user    User  @relation(fields: [userId], references: [id])
+  event   Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+  @@map("event_participants")
+}
+
+model MarketplaceItem {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  category    MarketplaceCategory
+  price       Float?
+  images      String[]
+  location    String
+  status      ItemStatus       @default(DISPONIVEL)
+  contactInfo Json // {phone, email, whatsapp}
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relacionamentos
+  sellerId    String
+  seller      User             @relation(fields: [sellerId], references: [id])
+
+  @@map("marketplace_items")
+}
+
+model VolunteerOpportunity {
+  id                String   @id @default(cuid())
+  title             String
+  description       String
+  category          VolunteerCategory
+  location          String
+  date              DateTime
+  duration          Int // em horas
+  volunteersNeeded  Int
+  requirements      String[]
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relacionamentos
+  organizerId       String
+  organizer         User                    @relation(fields: [organizerId], references: [id])
+  registrations     VolunteerRegistration[]
+
+  @@map("volunteer_opportunities")
+}
+
+model VolunteerRegistration {
+  id            String @id @default(cuid())
+  userId        String
+  opportunityId String
+
+  user          User                 @relation(fields: [userId], references: [id])
+  opportunity   VolunteerOpportunity @relation(fields: [opportunityId], references: [id])
+
+  @@unique([userId, opportunityId])
+  @@map("volunteer_registrations")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  channel   String   // "geral", "quadra-101", "seguranca", etc
+  createdAt DateTime @default(now())
+
+  // Relacionamentos
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@map("chat_messages")
+}
+
+// Enums
+enum Role {
+  MORADOR
+  ADMINISTRADOR
+  MODERADOR
+}
+
+enum IssueCategory {
+  INFRAESTRUTURA
+  SEGURANCA
+  EDUCACAO
+  SAUDE
+  MEIO_AMBIENTE
+  TRANSPORTE
+  OUTROS
+}
+
+enum IssueStatus {
+  ABERTO
+  EM_ANDAMENTO
+  RESOLVIDO
+  REJEITADO
+}
+
+enum Priority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum EventCategory {
+  REUNIAO
+  FESTA
+  LIMPEZA
+  ESPORTE
+  EDUCACAO
+  OUTROS
+}
+
+enum MarketplaceCategory {
+  SERVICOS
+  PRODUTOS
+  DOACAO
+  TROCA
+}
+
+enum ItemStatus {
+  DISPONIVEL
+  VENDIDO
+  RESERVADO
+}
+
+enum VolunteerCategory {
+  LIMPEZA
+  EDUCACAO
+  IDOSOS
+  CRIANCAS
+  ANIMAIS
+  OUTROS
+}
